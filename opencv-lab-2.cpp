@@ -81,6 +81,7 @@ Mat diff(const Mat& frame_1, const Mat& frame_2) {
 
 Mat SobelMask(const Mat& frame) {
 	Mat g_res = Mat::zeros(720, 1280, CV_8U), gr;
+	Mat g_res_2 = Mat::zeros(720, 1280, CV_8U);
 	cvtColor(frame, gr, COLOR_RGB2GRAY);
 	Mat sobel_x, sobel_y;
 	/*Sobel(gr, sobel_x, CV_8U, 1, 0);
@@ -98,19 +99,14 @@ Mat SobelMask(const Mat& frame) {
 				+ 2 * gr.at<unsigned char>(i, j + 1) + gr.at<unsigned char>(i + 1, j + 1)
 				- (gr.at<unsigned char>(i - 1, j - 1) + 2 * gr.at<unsigned char>(i, j - 1)
 					+ gr.at<unsigned char>(i + 1, j - 1));
-			/*if (x < 0) x = 0;
-			if (x > 255) x = 255;
-			if (y < 0) y = 0;
-			if (y > 255) y = 255;*/
-			//std::cout << x << " " << y << " " << std::endl;
 			g_res.at<unsigned char>(i, j) = sqrt(pow(x, 2) + pow(y, 2));
 		}
 	/*for(int i = 0; i < sobel_x.rows; i++)
 		for (int j = 0; j < sobel_x.cols; j++)
-		g_res.at<unsigned char>(i, j) = sqrt(
+			g_res_2.at<unsigned char>(i, j) = sqrt(
 			pow(sobel_x.at<unsigned char>(i, j), 2) +
 			pow(sobel_y.at<unsigned char>(i, j), 2));*/
-	//show(g_res, g_res, "sobel1", "sobel2");
+	// show(g_res - g_res_2, g_res_2 - g_res, "sobel1", "sobel2");
 	bitwise_not(g_res, g_res);
 	return g_res;
 }
