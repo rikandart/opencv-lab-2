@@ -16,12 +16,12 @@ using namespace cv;
 
 void show(const Mat& frame_1, const Mat& frame_2, const char* name_1, const char* name_2) {
 	namedWindow(name_1, WINDOW_NORMAL | WINDOW_FREERATIO | WINDOW_GUI_EXPANDED);
-	resizeWindow(name_1, 1280, 720);
+	resizeWindow(name_1, frame_1.cols, frame_1.rows);
 	moveWindow(name_1, 0, 0);
 	imshow(name_1, frame_1);
 	namedWindow(name_2, WINDOW_NORMAL | WINDOW_FREERATIO | WINDOW_GUI_EXPANDED);
-	resizeWindow(name_2, 1280, 720);
-	moveWindow(name_2, 1280, 0);
+	resizeWindow(name_2, frame_2.cols, frame_2.rows);
+	moveWindow(name_2, frame_1.cols, 0);
 	imshow(name_2, frame_2);
 	waitKey(0);
 }
@@ -80,14 +80,39 @@ Mat diff(const Mat& frame_1, const Mat& frame_2) {
 }*/
 
 Mat SobelMask(const Mat& frame) {
-	Mat g_res = Mat::zeros(720, 1280, CV_8U), gr;
-	Mat g_res_2 = Mat::zeros(720, 1280, CV_8U);
+	Mat g_res = Mat::zeros(frame.rows, frame.cols, CV_8U), gr;
+	Mat g_res_2 = Mat::zeros(frame.rows, frame.cols, CV_8U);
 	cvtColor(frame, gr, COLOR_RGB2GRAY);
-	Mat sobel_x, sobel_y;
-	/*Sobel(gr, sobel_x, CV_8U, 1, 0);
-	Sobel(gr, sobel_y, CV_8U, 0, 1);*/
-	// std::cout << gr.rows << " " << gr.cols << std::endl;
-	for (int i = 1; i < gr.rows-1; i++)
+	Mat sobel_x, sobel_y, abs_grad_x, abs_grad_y;
+	Sobel(gr, sobel_x, CV_8U, 1, 0);
+	Sobel(gr, sobel_y, CV_8U, 0, 1);
+	addWeighted(sobel_x, 1, sobel_y, 1, 0, g_res);
+
+	/*for (int i = 0; i < gr.rows; i++) {
+		int z1 = -1, z2 = -1, z3 = -1, z4 = -1, z5 = -1, z6 = -1,
+			z7 = -1, z8 = -1, z9 = -1;
+		if (i == 0) { z1 = 0; z2 = 0; z3 = 0; }
+		else if (i == gr.rows) { z7 = 0; z8 = 0; z9 = 0; }
+		for (int j = 0; j < gr.cols; j++) {
+			if (j == 0) { z1 = 0; z4 = 0; z7 = 0; }
+			else if (j == gr.cols) { z3 = 0; z6 = 0; z9 = 0; }
+
+			if (z1 != 0) z1 = gr.at<unsigned char>(i - 1, j - 1);
+			if (z2 != 0) z2 = gr.at<unsigned char>(i - 1, j);
+			if (z3 != 0) z3 = gr.at<unsigned char>(i - 1, j + 1);
+			if (z4 != 0) z4 = gr.at<unsigned char>(i, j - 1);
+			if (z6 != 0) z6 = gr.at<unsigned char>(i, j + 1);
+			if (z7 != 0) z7 = gr.at<unsigned char>(i + 1, j - 1);
+			if (z8 != 0) z8 = gr.at<unsigned char>(i + 1, j);
+			if (z9 != 0) z9 = gr.at<unsigned char>(i + 1, j + 1);
+
+			int x = z7 + 2 * z8 + z9 - (z1 + 2 * z2 + z3);
+			int y = z3 + 2 * z6 + z9 - (z1 + 2 * z4 + z7);
+			g_res.at<unsigned char>(i, j) = sqrt(pow(x, 2) + pow(y, 2));
+		}
+	}*/
+
+	/*for (int i = 1; i < gr.rows-1; i++)
 		for (int j = 1; j < gr.cols-1; j++) {
 
 			int x = gr.at<unsigned char>(i + 1, j - 1)
@@ -100,61 +125,29 @@ Mat SobelMask(const Mat& frame) {
 				- (gr.at<unsigned char>(i - 1, j - 1) + 2 * gr.at<unsigned char>(i, j - 1)
 					+ gr.at<unsigned char>(i + 1, j - 1));
 			g_res.at<unsigned char>(i, j) = sqrt(pow(x, 2) + pow(y, 2));
-		}
-	/*for(int i = 0; i < sobel_x.rows; i++)
-		for (int j = 0; j < sobel_x.cols; j++)
-			g_res_2.at<unsigned char>(i, j) = sqrt(
-			pow(sobel_x.at<unsigned char>(i, j), 2) +
-			pow(sobel_y.at<unsigned char>(i, j), 2));*/
-	// show(g_res - g_res_2, g_res_2 - g_res, "sobel1", "sobel2");
+		}*/
+	//show(g_res - g_res_2, g_res_2 - g_res, "sobel1", "sobel2");
 	bitwise_not(g_res, g_res);
 	return g_res;
-}
-
-Mat getHist(const Mat& image)
-{
-	// Создаем заполненный нулями Mat-контейнер размером 1 x 256
-	Mat hist = Mat::zeros(1, 256, CV_64FC1);
-
-	// последовательно считываем яркость каждого элемента изображения
-	// и увеличиваем на единицу значение соответствующего элемента матрицы hist
-	for (int i = 0; i < image.cols; i++)
-		for (int j = 0; j < image.rows; j++) {
-			int r = image.at<unsigned char>(j, i);
-			hist.at<double>(0, r) = hist.at<double>(0, r) + 1.0;
-		}
-
-	double m = 0, M = 0;
-	minMaxLoc(hist, &m, &M); // ищем глобальный минимум и максимум
-	hist = hist / M; // используем максимум для нормировки по высоте
-
-	Mat hist_img = Mat::zeros(100, 256, CV_8U);
-
-	for (int i = 0; i < 256; i++)
-		for (int j = 0; j < 100; j++) {
-			if (hist.at<double>(0, i) * 100 > j) {
-				hist_img.at<unsigned char>(99 - j, i) = 255;
-			}
-		}
-	bitwise_not(hist_img, hist_img); // инвертируем изображение
-	return hist_img;
 }
 
 int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "Russian");
-	Mat frame_1, frame_2, outline, outline_res;
+	Mat frame_1, frame_2, outline;
 	VideoCapture cap("E:/video.mp4");
 	for(int i = 0; i<11; i++)
 		cap >> frame_1;
 	cap >> frame_2;
 	Mat diff_frame = diff(frame_1, frame_2);
-	// show(frame_1, frame_2, "First frame", "Second frame");
-	Mat sobel_res = SobelMask(frame_1);
-	bitwise_and(diff_frame, sobel_res, outline);
-	outline_res = Mat::zeros(720, 1280, CV_8U);
-	editQuantizeLevel(2, outline, outline_res);
-	show(outline_res, outline_res, "First frame", "Second frame");
+	/*show(frame_1, frame_2, "First frame", "Second frame");
+	show(diff_frame, diff_frame, "First frame", "Second frame");*/
+	Mat sobel_res = SobelMask(frame_2);
+	Mat sobel_res_2, diff_frame_2;
+	editQuantizeLevel(2, sobel_res, sobel_res_2);
+	editQuantizeLevel(2, diff_frame, diff_frame_2);
+	bitwise_and(diff_frame_2, sobel_res_2, outline);	
+	show(outline, outline, "First frame", "Second frame");
 	return 0;
 }
 #endif
