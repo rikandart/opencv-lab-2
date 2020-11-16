@@ -26,6 +26,14 @@ void show(const Mat& frame_1, const Mat& frame_2, const char* name_1, const char
 	waitKey(0);
 }
 
+void show(const Mat& frame_1, const char* name_1) {
+	namedWindow(name_1, WINDOW_NORMAL | WINDOW_FREERATIO | WINDOW_GUI_EXPANDED);
+	resizeWindow(name_1, frame_1.cols, frame_1.rows);
+	moveWindow(name_1, 0, 0);
+	imshow(name_1, frame_1);
+	waitKey(0);
+}
+
 void editQuantizeLevel(const unsigned level, const Mat& img, Mat& dest_img) {
 	if (remainder(256.0, level) != 0.0 || level == 0 || level == 1) {
 		std::cout << "Incorrect quantize level" << std::endl;
@@ -134,7 +142,8 @@ Mat SobelMask(const Mat& frame) {
 int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL, "Russian");
-	Mat frame_1, frame_2, outline;
+	Mat frame_1, frame_2, outline, m_erode, m_dilate;
+	Mat ones = Mat::ones(2, 2, CV_8U);
 	VideoCapture cap("E:/video.mp4");
 	for(int i = 0; i<11; i++)
 		cap >> frame_1;
@@ -147,7 +156,16 @@ int main(int argc, char* argv[])
 	editQuantizeLevel(2, sobel_res, sobel_res_2);
 	editQuantizeLevel(2, diff_frame, diff_frame_2);
 	bitwise_and(diff_frame_2, sobel_res_2, outline);	
-	show(outline, outline, "First frame", "Second frame");
+	show(outline, "Outline");
+	erode(outline, m_erode, ones);
+	dilate(m_erode, m_dilate, ones);
+	ones = Mat::ones(3, 3, CV_8U);
+	dilate(m_dilate, m_erode, ones);
+	erode(m_erode, outline, ones);
+	// morphologyEx(m_dilate, morph, MORPH_BLACKHAT, ones);
+	/*erode(outline, m_erode, ones);
+	dilate(m_erode, m_dilate, ones);*/
+	show(outline, "Morphed image");
 	return 0;
 }
 #endif
