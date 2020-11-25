@@ -205,7 +205,8 @@ int main(int argc, char* argv[])
 	for(int i = 0; i<11; i++)
 		cap >> frame_1;
 	cap >> frame_2;
-	Mat diff_frame = diff(frame_1, frame_2);
+	Mat diff_frame;
+	absdiff(frame_1, frame_2, diff_frame);
 	show(frame_1, frame_2, "First frame", "Second frame");
 	show(diff_frame, "Difference frame");
 	Mat sobel_res = SobelMask(frame_2);
